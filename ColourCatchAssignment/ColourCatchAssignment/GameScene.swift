@@ -8,26 +8,36 @@
 
 import SpriteKit
 import GameplayKit
-enum Colors {
-    case Blue
-    case Red
-    case Yellow
-    case Purple
-    case None
+
+var GameOver : Bool = false
+enum Colors: Int {
+    case Yellow, Blue, Red, Purple
+    mutating func next()
+    {
+        self = Colors(rawValue: rawValue + 1) ?? Colors.Yellow
+    }
+     mutating func back()
+    {
+        self = Colors(rawValue: rawValue - 1) ?? Colors.Purple
+    }
+    
 }
 class GameScene: SKScene {
     let ColorCircle = SKSpriteNode()
     let Player = SKSpriteNode()
     var ScoreLabel: SKLabelNode! = nil
-    var Score : Int =  0;
-    var Difficultly : Int = 5;
+    var Score : Int =  0
+    var HighScore: Int = 0
+    var Difficultly : Int = 5
+    var FadeOutTime = 0;
     var Ball : String = "BlueBall"
-    var PlayerExist : Bool = false
-    var CurrentColor = Colors.None
-    var SectionColor = Colors.None
-    
+
+    var CurrentColor = Colors.Yellow
+    var SectionColor = Colors.Yellow
+    let userDefaults = UserDefaults.standard
     override func didMove(to view: SKView) {
         self.backgroundColor = UIColorFromRGB(rgbValue: 0x282828)
+        GameOver = false;
         AddLevelStuff()
         Ball = RandomPlayer()
         AddPlayer()
@@ -36,31 +46,40 @@ class GameScene: SKScene {
         MoveToCenter()
     }
     override func update(_ currentTime: TimeInterval) {
-        
-        if(ColorCircle.zRotation >= (CGFloat)(316.0 * (180.0  / Float.pi)) && ColorCircle.zRotation <= (CGFloat)(45.0 * (180.0 / Float.pi)))
-        {
-            SectionColor = Colors.Yellow
-        }
-        else  if(ColorCircle.zRotation >= (CGFloat)(46.0 * (180.0  / Float.pi)) && ColorCircle.zRotation <= (CGFloat)(135.0 * (180.0 / Float.pi)))
-        {
-            SectionColor = Colors.Blue
-        }
-        else  if(ColorCircle.zRotation >= (CGFloat)(136.0 * (180.0  / Float.pi)) && ColorCircle.zRotation <= (CGFloat)(225.0 * (180.0 / Float.pi)))
-        {
-            SectionColor = Colors.Red
-        }
-        else  if(ColorCircle.zRotation >= (CGFloat)(256.0 * ( 180.0  / Float.pi)) && ColorCircle.zRotation <= (CGFloat)(315.0 * (180.0 / Float.pi)))
-        {
-            SectionColor = Colors.Purple
-        }
         if(ColorCircle.contains(Player.position))
         {
-            let TestVar = ColorCircle.zRotation
             if(CurrentColor == SectionColor)
             {
+                Player.run(SKAction.fadeOut(withDuration: 0.5))
                 MoveToCenter()
+                ScoreLabel.text = String(Score)
+                userDefaults.set(Score, forKey: "Score")
+                if(Score >= HighScore)
+                {
+                    userDefaults.set(Score, forKey: "HighScore")
+                }
+                
+            }
+            else if (CurrentColor != SectionColor){
+                userDefaults.set(Score, forKey: "Score")
+                GameOver = true;
+                let newScene = MainMenu(size: (self.view?.bounds.size)!)
+                let transition = SKTransition.crossFade(withDuration: 1)
+                self.view?.presentScene(newScene, transition: transition)
+                transition.pausesOutgoingScene = true
+                transition.pausesIncomingScene = true
+            }
+            if(Score >= 40)
+            {
+                Difficultly = 3;
+            }
+            else if(Score >= 90)
+            {
+                Difficultly = 1;
             }
         }
+        
+        
     }
     //0xRGB
     func UIColorFromRGB(rgbValue: UInt) -> UIColor
@@ -78,6 +97,7 @@ class GameScene: SKScene {
         ColorCircle.texture = SKTexture(imageNamed: "ColorWheel")
         ColorCircle.size = CGSize(width: 160, height: 160)
         ColorCircle.position = CGPoint(x: self.frame.width/2, y: self.frame.height/2 - 200 )
+        ColorCircle.zRotation = 0
         self.addChild(ColorCircle)
         
         ScoreLabel = SKLabelNode()
@@ -87,6 +107,7 @@ class GameScene: SKScene {
         ScoreLabel.position = CGPoint(x: self.frame.midX, y: self.frame.midY - 330)
         self.addChild(ScoreLabel)
         
+      
     }
     func AddPlayer()
     {
@@ -95,7 +116,6 @@ class GameScene: SKScene {
         Player.size = CGSize(width: 25, height: 25)
         Player.position = CGPoint(x: self.frame.width/2, y: self.frame.height/2 + 400 )
         self.addChild(Player)
-        PlayerExist = false
     }
     func RandomPlayer() -> String
     {
@@ -126,13 +146,15 @@ class GameScene: SKScene {
     {
         if(Player.position.x == ColorCircle.position.x && Player.position.y == ColorCircle.position.y)
         {
-            Player.run(SKAction.fadeOut(withDuration: 2))
-            Player.run( SKAction.fadeIn(withDuration: 2))
-            Player.run( SKAction.wait(forDuration: 4))
+            
+           // Player.run( SKAction.wait(forDuration: 4))
+            Player.run( SKAction.fadeIn(withDuration: 0.5))
             Ball = RandomPlayer()
+            Score += 10;
             Player.texture = SKTexture(imageNamed: Ball)
-            Player.position =  CGPoint(x: self.frame.width/2, y: self.frame.height/2 + 400 )
+            Player.position =  CGPoint(x: frame.width/2, y: frame.height/2 + 400 )
             Player.run(SKAction.move(to: CGPoint( x: ColorCircle.position.x ,y: ColorCircle.position.y), duration: TimeInterval(Difficultly)))
+          
         
         }
         
@@ -141,18 +163,25 @@ class GameScene: SKScene {
 
         let touch = touches.first!
         let location = touch.location(in: self)
-        if(ColorCircle.zRotation == (CGFloat)(360.0 * (180.0 / Float.pi)))
-        {
-            ColorCircle.zRotation - (CGFloat)(360.0 * (180.0 / Float.pi))
-        }
+        
+        //Checks if anywhere on the left side of the screen is taped then rotates the circle
         if(location.x < (scene?.frame.width)!/2)
         {
             ColorCircle.run(SKAction.rotate(byAngle: CGFloat( Double.pi / 2), duration: 1))
+            SectionColor.next()
         }
+            //Checks if anywhere on the right side of the screen is tapped then rotates the circle
         else  if(location.x > (scene?.frame.width)!/2)
         {
             ColorCircle.run(SKAction.rotate(byAngle: -CGFloat( Double.pi / 2), duration: 1))
+            SectionColor.back()
         }
     
+    }
+}
+
+extension CGFloat{
+    static func degreeToRadians(degree: CGFloat)->CGFloat{
+        return((degree * CGFloat.pi)/180)
     }
 }

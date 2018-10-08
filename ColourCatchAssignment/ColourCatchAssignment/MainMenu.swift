@@ -11,10 +11,14 @@ import SpriteKit
 class MainMenu: SKScene{
     //Creating two sprite nodes
     let Start = SKSpriteNode (imageNamed: "StartButton")
+    let Exit = SKSpriteNode(imageNamed: "Exit")
     var Title: SKLabelNode!
     var Title2: SKLabelNode!
     var HighScore: SKLabelNode!
     var CurrentScore: SKLabelNode!
+    var HighScoreVal: SKLabelNode!
+    var CurrentScoreVal: SKLabelNode!
+    var userDefaults = UserDefaults.standard
     //This runs on load
     override func didMove(to view: SKView)
     {
@@ -26,17 +30,38 @@ class MainMenu: SKScene{
         //Set the right nodes position
         Start.position = CGPoint(x: self.frame.width / 2 , y: self.frame.height / 2 - 32)
         addChild(Start)
+        //Set right nodes size
+        Exit.size = CGSize(width: 64, height: 64)
+        //Set the right nodes position
+        Exit.position = CGPoint(x: self.frame.width - 64  , y: self.frame.height - 64)
+        addChild(Exit)
         CreateLabel()
+        let TotalHighScore = userDefaults.integer(forKey: "HighScore")
+        let EndScore = userDefaults.integer(forKey: "Score")
+        if(GameOver)
+        {
+            CurrentScoreVal.text = String(EndScore)
+        }
+        else{
+            CurrentScoreVal.text = String(0)
+        }
+        HighScoreVal.text = String(TotalHighScore)
     }
     
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         let location = touches.first?.location(in: self)
        if Start.contains(location!){
+        Start.scale(to:  CGSize(width: 200, height: 200))
             let newScene = GameScene(size: (self.view?.bounds.size)!)
             let transition = SKTransition.crossFade(withDuration: 2)
             self.view?.presentScene(newScene, transition: transition)
             transition.pausesOutgoingScene = true
             transition.pausesIncomingScene = true
+        }
+        if Exit.contains(location!)
+        {
+            Start.scale(to:  CGSize(width: 80, height: 80))
+            exit(0)
         }
     }
     //0xRGB
@@ -78,6 +103,15 @@ class MainMenu: SKScene{
         HighScore.fontName = "AlNile-Bold"
         HighScore.position = CGPoint(x: self.frame.midX - 93, y: self.frame.midY - 180)
         self.addChild(HighScore)
+        //HightScore Val
+        HighScoreVal = SKLabelNode();
+        HighScoreVal.text = "0"
+        HighScoreVal.fontColor = UIColorFromRGB(rgbValue: 0xff0079)
+        HighScoreVal.fontSize = 36
+        HighScoreVal.fontName = "ArialRoundedMTBold"
+        HighScoreVal.position = CGPoint(x: self.frame.midX , y: self.frame.midY - 180)
+        self.addChild(HighScoreVal)
+        
         //Current Score
         CurrentScore = SKLabelNode();
         CurrentScore.text = "SCORE:"
@@ -86,6 +120,15 @@ class MainMenu: SKScene{
         CurrentScore.fontName = "AlNile-Bold"
         CurrentScore.position = CGPoint(x: self.frame.midX - 87, y: self.frame.midY - 236)
         self.addChild(CurrentScore)
+        
+        //Current Score Val
+        CurrentScoreVal = SKLabelNode();
+        CurrentScoreVal.text = "0"
+        CurrentScoreVal.fontColor = UIColorFromRGB(rgbValue: 0x00ffff)
+        CurrentScoreVal.fontSize = 36
+        CurrentScoreVal.fontName = "ArialRoundedMTBold"
+        CurrentScoreVal.position = CGPoint(x: self.frame.midX, y: self.frame.midY - 236)
+        self.addChild(CurrentScoreVal)
     }
     
 }
